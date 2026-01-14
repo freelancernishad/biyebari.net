@@ -292,22 +292,22 @@ public function subscribe(Request $request)
     $request->cancel_url
 );
 
-$url = $this->createStripeCheckoutSession(
-    $plan,
-    $finalAmount,
-    $subscription,
-    $request->success_url,
-    $request->cancel_url
-) ?? '';
+// $url = $this->createStripeCheckoutSession(
+//     $plan,
+//     $finalAmount,
+//     $subscription,
+//     $request->success_url,
+//     $request->cancel_url
+// ) ?? '';
 
-// Checkout.com Payment Link (CURRENT GATEWAY)
-$CheckoutUrl = $this->createCheckoutPaymentLink(
-    $user,
-    $plan,
-    $finalAmount,
-    $subscription,
-    $request->success_url
-)?? '';
+// // Checkout.com Payment Link (CURRENT GATEWAY)
+// $CheckoutUrl = $this->createCheckoutPaymentLink(
+//     $user,
+//     $plan,
+//     $finalAmount,
+//     $subscription,
+//     $request->success_url
+// )?? '';
 
     // Stripe Checkout
     // $checkoutSession = \Stripe\Checkout\Session::create([
@@ -332,7 +332,7 @@ $CheckoutUrl = $this->createCheckoutPaymentLink(
 
     return response()->json([
         'url' => $paymentUrl,
-        'checkout_url' => $CheckoutUrl,
+        // 'checkout_url' => $CheckoutUrl,
 
     ]);
 }
