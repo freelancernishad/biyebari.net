@@ -67,6 +67,7 @@ private function createStripeCheckoutSession($plan, $finalAmount, $subscription,
 }
 
 
+
 private function createCheckoutPaymentLink($user, $plan, $finalAmount, $subscription, $successUrl)
 {
     $profile = $user->profile;
@@ -138,6 +139,49 @@ private function createCheckoutPaymentLink($user, $plan, $finalAmount, $subscrip
     return $response->json('_links.redirect.href');
 }
 
+
+private function biyebariPayment($user, $plan, $finalAmount, $subscription, $successUrl, $cancelUrl)
+{
+    try {
+        $client = new Client();
+
+        $response = $client->post(
+            'https://payment.biyebari.net/api/create-charge',
+            [
+                'headers' => [
+                    'Accept'       => 'application/json',
+                    'Content-Type' => 'application/json',
+                    'mh-piprapay-api-key' => '974525019695a9625ed9a820696255751066834966695a9625ed9af86020854',
+                ],
+                'json' => [
+                    'full_name'    => $user->name,
+                    'email_mobile' => $user->email ?? $user->phone,
+                    'amount'       => (string) $finalAmount,
+                    'currency'     => 'BDT',
+                    'redirect_url' => $successUrl,
+                    'cancel_url'   => $cancelUrl,
+                    'return_type'  => 'GET',
+                    'webhook_url'  => 'https://biyebari.net/self-care/webhook',
+                    'metadata'     => [
+                        'subscription_id' => $subscription->id,
+                        'plan'            => $plan->name,
+                    ],
+                ],
+            ]
+        );
+
+        $result = json_decode($response->getBody(), true);
+
+        return $result['payment_url'] ?? null;
+
+    } catch (\Throwable $e) {
+        Log::error('PipraPay Error', [
+            'error' => $e->getMessage(),
+        ]);
+
+        return null;
+    }
+}
 
      // Handle the subscription request
 public function subscribe(Request $request)
@@ -239,6 +283,14 @@ public function subscribe(Request $request)
     ]);
 
 
+    $paymentUrl = $this->biyebariPayment(
+    $user,
+    $plan,
+    $finalAmount,
+    $subscription,
+    $request->success_url,
+    $request->cancel_url
+);
 
 $url = $this->createStripeCheckoutSession(
     $plan,
@@ -279,7 +331,7 @@ $CheckoutUrl = $this->createCheckoutPaymentLink(
     // ]);
 
     return response()->json([
-        'url' => $url,
+        'url' => $paymentUrl,
         'checkout_url' => $CheckoutUrl,
 
     ]);
