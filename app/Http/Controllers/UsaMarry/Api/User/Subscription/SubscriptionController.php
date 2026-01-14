@@ -190,7 +190,7 @@ private function biyebariPayment($user, $plan, $finalAmount, $subscription, $suc
         return $result['pp_url'] ?? null;
 
     } catch (\Throwable $e) {
-        \Log::error('Biyebari PipraPay Error', [
+        Log::error('Biyebari PipraPay Error', [
             'error' => $e->getMessage(),
         ]);
 
