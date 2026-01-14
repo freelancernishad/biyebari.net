@@ -139,44 +139,58 @@ private function createCheckoutPaymentLink($user, $plan, $finalAmount, $subscrip
     return $response->json('_links.redirect.href');
 }
 
-
 private function biyebariPayment($user, $plan, $finalAmount, $subscription, $successUrl, $cancelUrl)
 {
     try {
-        $client = new Client();
+        $payload = [
+            'full_name'    => $user->name,
+            'email_mobile' => $user->email ?? $user->phone,
+            'amount'       => (string) $finalAmount,
+            'currency'     => 'BDT',
+            'redirect_url' => $successUrl,
+            'return_type'  => 'GET',
+            'cancel_url'   => $cancelUrl,
+            'webhook_url'  => 'https://biyebari.net/self-care/webhook',
+            'metadata'     => [
+                'subscription_id' => $subscription->id,
+                'plan'            => $plan->name,
+                'invoiceid'       => 'INV-' . $subscription->id,
+            ],
+        ];
 
-        $response = $client->post(
-            'https://payment.biyebari.net/api/create-charge',
-            [
-                'headers' => [
-                    'Accept'       => 'application/json',
-                    'Content-Type' => 'application/json',
-                    'mh-piprapay-api-key' => '974525019695a9625ed9a820696255751066834966695a9625ed9af86020854',
-                ],
-                'json' => [
-                    'full_name'    => $user->name,
-                    'email_mobile' => $user->email ?? $user->phone,
-                    'amount'       => (string) $finalAmount,
-                    'currency'     => 'BDT',
-                    'redirect_url' => $successUrl,
-                    'cancel_url'   => $cancelUrl,
-                    'return_type'  => 'GET',
-                    'webhook_url'  => 'https://biyebari.net/self-care/webhook',
-                    'metadata'     => [
-                        'subscription_id' => $subscription->id,
-                        'plan'            => $plan->name,
-                        'invoiceid'       => 'INV-' . $subscription->id,
-                    ],
-                ],
-            ]
-        );
+        $curl = curl_init();
 
-        $result = json_decode($response->getBody(), true);
+        curl_setopt_array($curl, [
+            CURLOPT_URL            => 'https://payment.biyebari.net/api/create-charge',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING       => '',
+            CURLOPT_MAXREDIRS      => 10,
+            CURLOPT_TIMEOUT        => 30,
+            CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST  => 'POST',
+            CURLOPT_POSTFIELDS     => json_encode($payload),
+            CURLOPT_HTTPHEADER     => [
+                'accept: application/json',
+                'content-type: application/json',
+                'mh-piprapay-api-key: 974525019695a9625ed9a820696255751066834966695a9625ed9af86020854',
+            ],
+        ]);
 
+        $response = curl_exec($curl);
+
+        if (curl_errno($curl)) {
+            throw new \Exception(curl_error($curl));
+        }
+
+        curl_close($curl);
+
+        $result = json_decode($response, true);
+
+        // ✅ only return payment URL
         return $result['pp_url'] ?? null;
 
     } catch (\Throwable $e) {
-        Log::error('PipraPay Error', [
+        \Log::error('Biyebari PipraPay Error', [
             'error' => $e->getMessage(),
         ]);
 
