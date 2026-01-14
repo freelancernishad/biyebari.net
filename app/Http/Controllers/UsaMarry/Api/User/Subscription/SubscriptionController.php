@@ -165,6 +165,7 @@ private function biyebariPayment($user, $plan, $finalAmount, $subscription, $suc
                     'metadata'     => [
                         'subscription_id' => $subscription->id,
                         'plan'            => $plan->name,
+                        'invoiceid'       => 'INV-' . $subscription->id,
                     ],
                 ],
             ]
@@ -172,7 +173,7 @@ private function biyebariPayment($user, $plan, $finalAmount, $subscription, $suc
 
         $result = json_decode($response->getBody(), true);
 
-        return $result['payment_url'] ?? null;
+        return $result['pp_url'] ?? null;
 
     } catch (\Throwable $e) {
         Log::error('PipraPay Error', [
